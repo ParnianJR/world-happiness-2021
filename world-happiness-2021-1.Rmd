@@ -1,0 +1,349 @@
+---
+title: "World Happiness report 2021"
+author: "Parnian Jahangiri Rad"
+date: "2/14/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(janitor)
+library(ggcorrplot)
+library(caTools)
+```
+
+```{r}
+data1 <- read_csv("world-happiness-report-2021.csv")
+data1 <- data1 %>%
+  clean_names()
+```
+
+```{r,message=FALSE,warning=FALSE}
+#First 10 happiest countries(based on ladder_score):
+data2 <- data1 %>%
+  select(-starts_with("explained_by"))
+#View(data2)
+top_10 <- data2 %>%
+  arrange(desc(ladder_score)) %>%
+  head(10)
+
+bottom_10 <- data2 %>%
+  arrange(ladder_score) %>%
+  head(10)
+```
+
+```{r}
+ggplot(data = top_10,aes(x = reorder(country_name,ladder_score),
+                         y = ladder_score,
+                         fill = regional_indicator)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme(axis.title.y = element_blank())
+  ggtitle("Top 10 happiest countries")
+```
+
+```{r}
+ggplot(data = bottom_10,aes(x = reorder(country_name,ladder_score),
+                         y = ladder_score,
+                         fill = regional_indicator)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("Top 10 saddest countries")
+```
+  
+### Find happiest regions  
+```{r}
+region_happiness <- data2 %>%
+  group_by(regional_indicator) %>%
+  summarise(mean(ladder_score))
+```
+
+```{r}
+ggplot(data = region_happiness,
+       aes(x = reorder(regional_indicator, `mean(ladder_score)`),
+           y = `mean(ladder_score)`,
+       fill = regional_indicator)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  xlab("") +
+  ylab("") +
+  ggtitle("Region Happiness")
+```
+  
+### Relation between logged_gpd_per_capita and ladder_score    
+```{r}
+ggplot(data = data2 ,
+       aes(x = logged_gdp_per_capita ,
+           y = ladder_score)) +
+  geom_point(aes(color = regional_indicator)) +
+  ggtitle("Relation between logged_gpd_per_capita 
+          and ladder_score")
+```
+  
+increase in `logged_gpd_per_capita` increases `ladder_score`.  
+  
+There are 7 features which affects happiness based on `ladder_score`:  
+- `log_gpd_per_capita`  
+- `social_support`  
+- `healthy_life_expendancy`  
+- `freedom_to_make_life_choices`  
+- `generosity`  
+- `perceptions_of_corruption`  
+- `dystopia_residual`  
+  
+
+```{r,message=FALSE,warning=FALSE}
+#regional_data based on logged_gpd_per_capita
+regional_data_gpd <- data2 %>%
+  group_by(regional_indicator) %>%
+  summarise(mean(logged_gdp_per_capita))
+is.num <- sapply(regional_data_gpd,is.numeric)
+regional_data_gpd[is.num] <- lapply(regional_data_gpd[is.num], round, 2)
+
+ggplot(regional_data_gpd,aes(
+        x = reorder(regional_indicator,`mean(logged_gdp_per_capita)`),
+        y = `mean(logged_gdp_per_capita)`))+
+        coord_flip()+
+  geom_bar(stat="identity",fill="darkviolet") +
+  theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank()) +
+  ggtitle("Happiness of regional indicators based 
+          on gpd_per_capita")
+```
+  
+It seems that `logged_gdp_per_capita` has a high impact on ladder_score.(important feature).  
+```{r,message=FALSE,warning=FALSE}
+#regional_data based on social_support
+regional_data_social_support <- data2 %>%
+  group_by(regional_indicator) %>%
+  summarise(mean(social_support))
+is.num <- sapply(regional_data_social_support,is.numeric)
+regional_data_social_support[is.num] <- lapply(regional_data_social_support[is.num], round, 2)
+
+ggplot(regional_data_social_support,aes(
+        x = reorder(regional_indicator,`mean(social_support)`),
+        y = `mean(social_support)`))+
+        coord_flip()+
+  geom_bar(stat="identity",fill="magenta") +
+  theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank()) +
+  ggtitle("Happiness of regional indicators based 
+          on social_support")
+```
+  
+`social_support` seems to be an important feature as well. 
+```{r,message=FALSE,warning=FALSE}
+#regional_data based on healthy_life_expendancy
+regional_data_healthy <- data2 %>%
+  group_by(regional_indicator) %>%
+  summarise(mean(healthy_life_expectancy))
+is.num <- sapply(regional_data_healthy,is.numeric)
+regional_data_healthy[is.num] <- lapply(regional_data_healthy[is.num], round, 2)
+
+ggplot(regional_data_healthy,aes(
+        x = reorder(regional_indicator,`mean(healthy_life_expectancy)`),
+        y = `mean(healthy_life_expectancy)`))+
+        coord_flip()+
+  geom_bar(stat="identity",fill="violetred") +
+  theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank()) +
+  ggtitle("Happiness of regional indicators based 
+          on healthy_life_expendancy")
+```
+
+
+Let's check out freedom_to_make_life_choices:  
+```{r,message=FALSE,warning=FALSE}
+#regional_data based on freedom_to_make_life choices
+regional_data_freedom <- data2 %>%
+  group_by(regional_indicator) %>%
+  summarise(mean(freedom_to_make_life_choices))
+is.num <- sapply(regional_data_freedom,is.numeric)
+regional_data_freedom[is.num] <- lapply(regional_data_freedom[is.num], round, 2)
+
+ggplot(regional_data_freedom,aes(
+        x = reorder(regional_indicator,`mean(freedom_to_make_life_choices)`),
+        y = `mean(freedom_to_make_life_choices)`))+
+        coord_flip()+
+  geom_bar(stat="identity",fill="cyan") +
+  theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank()) +
+  ggtitle("Happiness of regional indicators based 
+          on freedom_to_make_life choices")
+```
+  
+Interesting!!  
+
+```{r,message=FALSE,warning=FALSE}
+#regional_data based on generosity
+regional_data_generosity <- data2 %>%
+  group_by(regional_indicator) %>%
+  summarise(mean(generosity))
+is.num <- sapply(regional_data_generosity,is.numeric)
+regional_data_generosity[is.num] <- lapply(regional_data_generosity[is.num], round, 2)
+
+ggplot(regional_data_generosity,aes(
+        x = reorder(regional_indicator,`mean(generosity)`),
+        y = `mean(generosity)`))+
+        coord_flip()+
+  geom_bar(stat="identity",fill="blueviolet") +
+  theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank()) +
+  ggtitle("Happiness of regional indicators based 
+          on generosity")
+```
+
+```{r,message=FALSE,warning=FALSE}
+#regional_data based on perception_of_corruption
+regional_data_perception <- data2 %>%
+  group_by(regional_indicator) %>%
+  summarise(mean(perceptions_of_corruption))
+is.num <- sapply(regional_data_perception,is.numeric)
+regional_data_perception[is.num] <- lapply(regional_data_perception[is.num], round, 2)
+
+ggplot(regional_data_perception,aes(
+        x = reorder(regional_indicator,`mean(perceptions_of_corruption)`),
+        y = `mean(perceptions_of_corruption)`))+
+        coord_flip()+
+  geom_bar(stat="identity",fill="deeppink") +
+  theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank()) +
+  ggtitle("Happiness of regional indicators based 
+          on perception_of_corruption")
+```
+  
+```{r,message=FALSE,warning=FALSE}
+#regional_data based on dystopia_residual
+regional_data_dystopia <- data2 %>%
+  group_by(regional_indicator) %>%
+  summarise(mean(dystopia_residual))
+is.num <- sapply(regional_data_dystopia,is.numeric)
+regional_data_dystopia[is.num] <- lapply(regional_data_dystopia[is.num], round, 2)
+
+ggplot(regional_data_dystopia,aes(
+        x = reorder(regional_indicator,`mean(dystopia_residual)`),
+        y = `mean(dystopia_residual)`))+
+        coord_flip()+
+  geom_bar(stat="identity",fill="lightslateblue") +
+  theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank()) +
+  ggtitle("Happiness of regional indicators based 
+          on dystopia_residual")
+```  
+  
+```{r,message=FALSE,warning=FALSE}
+regional_mean_data <- inner_join(region_happiness,
+  inner_join(regional_data_gpd,
+  inner_join(regional_data_social_support,
+  inner_join(regional_data_healthy,
+  inner_join(regional_data_freedom,
+  inner_join(regional_data_generosity,
+  inner_join(regional_data_perception,
+                                 regional_data_dystopia,
+                                 by="regional_indicator"),
+            by="regional_indicator"),
+          by="regional_indicator"),
+        by="regional_indicator"),
+      by="regional_indicator"),
+    by="regional_indicator"),
+ by="regional_indicator") 
+```
+ 
+Feature importance using **correlation** (we will also plot it):  
+```{r,message=FALSE,warning=FALSE}
+cor(regional_mean_data$`mean(ladder_score)`,
+    regional_mean_data$`mean(logged_gdp_per_capita)`)
+```
+ 
+```{r,message=FALSE,warning=FALSE} 
+cor(regional_mean_data$`mean(ladder_score)`,
+    regional_mean_data$`mean(social_support)`)
+```
+ 
+```{r,message=FALSE,warning=FALSE} 
+names <- names(regional_mean_data)
+names <- names[-c(1,2)]
+y <- vector()
+for(i in names){
+  y <- append(y,
+              cor(regional_mean_data$`mean(ladder_score)`,
+                  regional_mean_data[[i]]))
+}
+y
+```
+
+```{r,message=FALSE,warning=FALSE}
+df1 <- data.frame(names,y)
+is.num <- sapply(regional_data_social_support,is.numeric)
+df1[is.num] <- lapply(df1[is.num], round, 2)
+
+ggplot(df1,aes(
+        x = reorder(names,y),
+        y = y)) +
+        coord_flip() +
+  geom_bar(stat="identity",fill="deepskyblue") +
+  theme(axis.title.x = element_blank(),
+          axis.title.y = element_blank()) +
+  ggtitle("Feature importance using correlation")
+```
+  
+### Pearson Correlation Matrix  
+```{r}
+cdf <- data2 %>%
+  select(ladder_score,
+         logged_gdp_per_capita,
+         social_support,
+         healthy_life_expectancy,
+         freedom_to_make_life_choices,
+         generosity,
+         perceptions_of_corruption,
+         dystopia_residual)
+
+cor_df <- data.frame(cor(cdf))
+ggcorrplot(cor_df, method ="square")
+```
+  
+### Linear regression  
+```{r}
+set.seed(66)
+split = sample.split(cdf$ladder_score, SplitRatio = 0.7)
+training_set = subset(cdf, split == TRUE)
+test_set = subset(cdf, split == FALSE)
+
+lm_model <- lm(formula = ladder_score ~ ., data = training_set)
+summary(lm_model)
+```
+```{r}
+y_pred <- predict(lm_model, newdata = test_set)
+pred_df <- as.data.frame(cbind(Prediction = y_pred , Actual = test_set$ladder_score))
+
+ggplot(pred_df, aes(Actual, Prediction )) +
+  geom_point() +
+  theme_bw() +
+  geom_abline() +
+  labs(title = "Multiple linear regression" ,
+       x = "real ladder_score",
+       y = "predicted ladder_score")
+```
+
+### One-sample T-test  
+East Asia as our sample  
+```{r}
+ea <- data2 %>%
+  filter(regional_indicator == "East Asia")
+
+ggplot(data = ea,aes(
+  x = regional_indicator,
+  y = ladder_score
+      )) +
+  geom_boxplot()
+```
+
+```{r}
+t.test(ea$ladder_score, mu = 5)
+```
